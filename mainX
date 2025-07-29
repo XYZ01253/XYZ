@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการสินค้า - Shop Inventory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-cyan-50 via-blue-100 to-teal-200 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-xl p-8 mb-8 text-white">
+            <div class="mb-4">
+                <h1 class="text-3xl font-bold text-center">🐱 ระบบจัดการสินค้า - ธีมแมว</h1>
+            </div>
+            <p class="text-purple-100 text-center mb-6">เพิ่ม ลบ และจัดการสินค้าในร้านของคุณ</p>
+            
+            <!-- Navigation Menu -->
+            <div class="flex justify-center space-x-4">
+                <button onclick="showAddForm()" id="addFormBtn" 
+                        class="px-6 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all duration-300 font-semibold">
+                    📝 เพิ่มสินค้า
+                </button>
+                <button onclick="showOrderView()" id="orderViewBtn" 
+                        class="px-6 py-2 bg-white bg-opacity-10 text-purple-100 rounded-lg hover:bg-opacity-20 transition-all duration-300 font-semibold">
+                    📋 ประวัติ
+                </button>
+                <button onclick="showStockStatus()" id="stockStatusBtn" 
+                        class="px-6 py-2 bg-white bg-opacity-10 text-purple-100 rounded-lg hover:bg-opacity-20 transition-all duration-300 font-semibold">
+                    📦 สต็อกสินค้า
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Add Product Form -->
+        <div id="addFormSection" class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-semibold text-purple-700 mb-6">🐱 ชื่อ</h2>
+            
+            <form id="productForm" class="space-y-6">
+                <!-- Auto Date/Time Display -->
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                    <label class="block text-sm font-medium text-purple-700 mb-2">🕐 วันที่และเวลาบันทึก (อัตโนมัติ)</label>
+                    <div id="currentDateTime" class="text-lg font-semibold text-purple-600"></div>
+                </div>
+
+                <!-- Name Input -->
+                <div>
+                    <label for="productName" class="block text-sm font-medium text-gray-700 mb-2">ชื่อ *</label>
+                    <input type="text" id="productName" required 
+                           class="w-full px-4 py-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                           placeholder="กรอกชื่อ">
+                </div>
+
+                <!-- Product Selection with Add/Remove -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">รายการสินค้า</label>
+                    <div id="productList" class="space-y-3">
+                        <div class="product-item flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                            <select class="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="">เลือกสินค้า</option>
+                                <!-- Products will be loaded from Google Sheets -->
+                            </select>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="decreaseQuantity(this)" 
+                                        class="w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-bold">
+                                    -
+                                </button>
+                                <input type="number" readonly value="1" min="1" 
+                                       class="w-12 px-2 py-1 border border-purple-300 rounded text-center bg-gray-50">
+                                <button type="button" onclick="increaseQuantity(this)" 
+                                        class="w-8 h-8 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-bold">
+                                    +
+                                </button>
+                            </div>
+                            <button type="button" onclick="removeProduct(this)" 
+                                    class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                                ❌
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addProduct()" 
+                            class="mt-3 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
+                        🐾 สินค้า
+                    </button>
+                </div>
+
+                <!-- Total Price Display -->
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                    <div class="flex justify-between items-center">
+                        <label class="text-lg font-semibold text-purple-700">💰 ราคารวมทั้งหมด</label>
+                        <div id="form-total" class="text-2xl font-bold text-purple-800">฿0</div>
+                    </div>
+                </div>
+
+                <!-- Payment Status -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">💳 สถานะการจ่ายเงิน</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentStatus" value="paid" 
+                                   class="mr-2 text-purple-600 focus:ring-purple-500">
+                            <span class="text-green-600 font-semibold">✅ จ่ายแล้ว</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentStatus" value="unpaid" checked
+                                   class="mr-2 text-purple-600 focus:ring-purple-500">
+                            <span class="text-orange-600 font-semibold">⏳ ยังไม่จ่าย</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notes Field -->
+                <div>
+                    <label for="productNotes" class="block text-sm font-medium text-gray-700 mb-2">📝 หมายเหตุ</label>
+                    <textarea id="productNotes" rows="3" 
+                              class="w-full px-4 py-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                              placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+                </div>
+
+
+
+
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-semibold text-lg shadow-lg">
+                    🐱 บันทึกข้อมูล
+                </button>
+            </form>
+        </div>
+
+        <!-- Stock Status Section -->
+        <div id="stockStatusSection" class="bg-white rounded-2xl shadow-xl p-8 mb-8 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-teal-700">📦 สถานะสต็อกสินค้า</h2>
+                <div class="flex gap-2">
+                    <button onclick="showAddStockForm()" 
+                            class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300">
+                        ➕ เพิ่มสินค้า
+                    </button>
+                    <button onclick="loadStockStatus()" 
+                            class="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg hover:from-teal-600 hover:to-cyan-700 transition-all duration-300">
+                        🔄 รีเฟรช
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Add Stock Form -->
+            <div id="addStockForm" class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200 mb-6 hidden">
+                <h3 class="text-lg font-semibold text-green-700 mb-4">เพิ่มสินค้าใหม่</h3>
+                <form id="stockForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อสินค้า *</label>
+                            <input type="text" id="stockProductName" required 
+                                   class="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">จำนวนคงเหลือ *</label>
+                            <input type="number" id="stockPrice" required min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคา (บาท) *</label>
+                            <input type="number" id="stockQuantity" required min="0"
+                                   class="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" 
+                                class="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300">
+                            💾 บันทึกสินค้า
+                        </button>
+                        <button type="button" onclick="hideAddStockForm()" 
+                                class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            ยกเลิก
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Edit Stock Form -->
+            <div id="editStockForm" class="bg-gradient-to-r from-orange-50 to-yellow-50 p-6 rounded-lg border border-orange-200 mb-6 hidden">
+                <h3 class="text-lg font-semibold text-orange-700 mb-4">แก้ไขสินค้า</h3>
+                <form id="editStockFormElement" class="space-y-4">
+                    <input type="hidden" id="editStockId">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อสินค้า *</label>
+                            <input type="text" id="editStockProductName" required 
+                                   class="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคา (บาท) *</label>
+                            <input type="number" id="editStockPrice" required min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">จำนวนคงเหลือ *</label>
+                            <input type="number" id="editStockQuantity" required min="0"
+                                   class="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" 
+                                class="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-600 text-white rounded-lg hover:from-orange-600 hover:to-yellow-700 transition-all duration-300">
+                            💾 บันทึกการแก้ไข
+                        </button>
+                        <button type="button" onclick="hideEditStockForm()" 
+                                class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            ยกเลิก
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Stock List -->
+            <div id="stockList" class="space-y-4">
+                <p class="text-gray-500 text-center py-8">กำลังโหลดข้อมูล...</p>
+            </div>
+        </div>
+
+
+
+        <!-- Order View Section -->
+        <div id="orderViewSection" class="bg-white rounded-2xl shadow-xl p-8 mb-8 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-purple-700">📋 ประวัติการสั่งซื้อ</h2>
+                <button onclick="refreshOrders()" 
+                        class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300">
+                    🔄 รีเฟรช
+                </button>
+            </div>
+            
+            <!-- Search -->
+            <div class="mb-6">
+                <input type="text" id="searchOrder" placeholder="ค้นหาชื่อสินค้า..." 
+                       class="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            
+            <!-- Total Summary -->
+            <div id="ordersTotalSummary" class="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg border border-purple-200 mb-6 hidden">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="ordersGrandTotal">฿0</div>
+                    <div class="text-sm text-purple-700 mt-1">ยอดรวมทั้งหมด</div>
+                </div>
+            </div>
+            
+            <!-- Orders List -->
+            <div id="ordersList" class="space-y-4">
+                <p class="text-gray-500 text-center py-8">ยังไม่มีออเดอร์</p>
+            </div>
+        </div>
+
+        <!-- Saved Records -->
+        <div id="recordsSection" class="bg-white rounded-2xl shadow-xl p-8">
+            <h2 class="text-2xl font-semibold text-purple-700 mb-6">🐾 ข้อมูลที่บันทึกแล้ว</h2>
+            <div id="recordsList" class="space-y-4">
+                <p class="text-gray-500 text-center py-8">ยังไม่มีข้อมูลที่บันทึก</p>
+            </div>
+        </div>
+
+        <!-- Edit Order Modal -->
+        <div id="editOrderModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+            <div class="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-semibold text-purple-700">✏️ แก้ไขออเดอร์</h3>
+                    <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                </div>
+                
+                <form id="editOrderForm" class="space-y-4">
+                    <input type="hidden" id="editOrderIndex">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อสินค้า</label>
+                        <input type="text" id="editProductName" required 
+                               class="w-full px-4 py-2 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">รายการสินค้า</label>
+                        <div id="editProductList" class="space-y-2">
+                            <!-- Products will be populated here -->
+                        </div>
+                        <button type="button" onclick="addEditProduct()" 
+                                class="mt-2 px-3 py-1 bg-teal-500 text-white rounded text-sm hover:bg-teal-600">
+                            + เพิ่มสินค้า
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">หมายเหตุ</label>
+                        <textarea id="editProductNotes" rows="3" 
+                                  class="w-full px-4 py-2 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" 
+                                class="flex-1 bg-gradient-to-r from-teal-500 to-cyan-600 text-white py-2 px-4 rounded-lg hover:from-teal-600 hover:to-cyan-700 transition-all duration-300">
+                            💾 บันทึกการแก้ไข
+                        </button>
+                        <button type="button" onclick="closeEditModal()" 
+                                class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            ยกเลิก
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Demo Notice -->
+        <div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p class="text-yellow-800 text-sm">
+                <strong>หมายเหตุ:</strong> นี่เป็นเวอร์ชันตัวอย่าง (Demo) - ข้อมูลจะถูกเก็บในเบราว์เซอร์เท่านั้น 
+                ไม่สามารถส่งไปยัง Google Sheets ได้จริงในสภาพแวดล้อมนี้
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Button style constants
+        const defaultBtnClass = 'px-6 py-2 bg-white bg-opacity-10 text-blue-100 rounded-lg hover:bg-opacity-20 transition-all duration-300 font-semibold';
+        const activeBtnClass = 'px-6 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all duration-300 font-semibold';
+
+        // Update current date/time
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Asia/Bangkok'
+            };
+            document.getElementById('currentDateTime').textContent = 
+                now.toLocaleDateString('th-TH', options);
+        }
+
+        // Add new product row
+        function addProduct() {
+            const productList = document.getElementById('productList');
+            const newItem = document.createElement('div');
+            newItem.className = 'product-item flex items-center gap-3 p-3 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-lg border border-teal-200';
+            newItem.innerHTML = `
+                <select class="flex-1 px-3 py-2 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <option value="">เลือกสินค้า</option>
+                    <!-- Products will be populated by updateProductSelects() -->
+                </select>
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="decreaseQuantity(this)" 
+                            class="w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-bold">
+                        -
+                    </button>
+                    <input type="number" readonly value="1" min="1" 
+                           class="w-12 px-2 py-1 border border-teal-300 rounded text-center bg-gray-50">
+                    <button type="button" onclick="increaseQuantity(this)" 
+                            class="w-8 h-8 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-bold">
+                        +
+                    </button>
+                </div>
+                <button type="button" onclick="removeProduct(this)" 
+                        class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                    ❌
+                </button>
+            `;
+            productList.appendChild(newItem);
+            updateProductSelects(); // Populate the new select with products
+        }
+
+        // Remove product row
+        function removeProduct(button) {
+            const productItems = document.querySelectorAll('.product-item');
+            if (productItems.length > 1) {
+                button.parentElement.remove();
+                updateOrderSummary();
+            } else {
+                alert('ต้องมีสินค้าอย่างน้อย 1 รายการ');
+            }
+        }
+
+        // Quantity button functions
+        function increaseQuantity(button) {
+            const input = button.previousElementSibling;
+            const currentValue = parseInt(input.value);
+            input.value = currentValue + 1;
+            updateOrderSummary();
+        }
+
+        function decreaseQuantity(button) {
+            const input = button.nextElementSibling;
+            const currentValue = parseInt(input.value);
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+                updateOrderSummary();
+            }
+        }
+
+        // Update order summary in real-time
+        function updateOrderSummary() {
+            const formTotal = document.getElementById('form-total');
+            const productItems = document.querySelectorAll('.product-item');
+            
+            let total = 0;
+            
+            productItems.forEach(item => {
+                const select = item.querySelector('select');
+                const quantity = item.querySelector('input[type="number"]');
+                
+                if (select.value) {
+                    try {
+                        const productData = JSON.parse(select.value);
+                        const qty = parseInt(quantity.value);
+                        const itemTotal = productData.price * qty;
+                        total += itemTotal;
+                    } catch (e) {
+                        console.error('Error parsing product data:', e);
+                    }
+                }
+            });
+            
+            formTotal.textContent = `฿${total.toLocaleString()}`;
+        }
+
+
+
+        // Generate unique ID
+        function generateOrderId() {
+            return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+        }
+
+        // Form submission
+        document.getElementById('productForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '🌊 กำลังบันทึก...';
+            submitButton.disabled = true;
+            
+            // Generate order ID
+            const orderId = generateOrderId();
+            
+            const formData = new FormData();
+            formData.append('orderId', orderId);
+            formData.append('dateTime', document.getElementById('currentDateTime').textContent);
+            formData.append('productName', document.getElementById('productName').value);
+            formData.append('notes', document.getElementById('productNotes').value || 'ไม่มีหมายเหตุ');
+            
+            // Get payment status
+            const paymentStatus = document.querySelector('input[name="paymentStatus"]:checked').value;
+            formData.append('paymentStatus', paymentStatus);
+            
+            // Collect product data and check stock
+            const products = [];
+            const productItems = document.querySelectorAll('.product-item');
+            let stockError = false;
+            
+            for (let item of productItems) {
+                const select = item.querySelector('select');
+                const quantity = item.querySelector('input[type="number"]');
+                if (select.value) {
+                    const productData = JSON.parse(select.value);
+                    const requestedQty = parseInt(quantity.value);
+                    
+                    // Check stock availability
+                    if (productData.stock !== undefined && productData.stock < requestedQty) {
+                        alert(`❌ สินค้า "${productData.name}" มีสต็อกเหลือเพียง ${productData.stock} ชิ้น แต่คุณต้องการ ${requestedQty} ชิ้น`);
+                        stockError = true;
+                        break;
+                    }
+                    
+                    products.push({
+                        id: productData.id,
+                        name: productData.name,
+                        price: productData.price,
+                        quantity: requestedQty,
+                        total: productData.price * requestedQty
+                    });
+                }
+            }
+            
+            if (stockError) {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                return;
+            }
+            
+            formData.append('products', JSON.stringify(products));
+            formData.append('action', 'addOrder'); // Add action parameter
+
+
+            try {
+                // Send to Google Apps Script
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update local stock data
+                    products.forEach(orderProduct => {
+                        const productIndex = availableProducts.findIndex(p => p.id === orderProduct.id);
+                        if (productIndex !== -1) {
+                            availableProducts[productIndex].stock -= orderProduct.quantity;
+                        }
+                    });
+                    
+                    // Update product selects with new stock levels
+                    updateProductSelects();
+                    
+                    // Also save to localStorage for local display
+                    const localData = {
+                        orderId: orderId,
+                        dateTime: document.getElementById('currentDateTime').textContent,
+                        productName: document.getElementById('productName').value,
+                        products: products,
+                        notes: document.getElementById('productNotes').value || 'ไม่มีหมายเหตุ',
+                        paymentStatus: paymentStatus
+                    };
+                    
+                    let records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+                    records.push(localData);
+                    localStorage.setItem('shopRecords', JSON.stringify(records));
+                    
+                    alert('✅ บันทึกข้อมูลและอัพเดทสต็อกเรียบร้อยแล้ว!');
+                    
+                    // Reset form
+                    this.reset();
+                    
+                    // Refresh displays
+                    displayRecords();
+                    updateOrderSummary();
+                    
+                    // Refresh stock status if currently viewing
+                    if (!document.getElementById('stockStatusSection').classList.contains('hidden')) {
+                        loadStockStatus();
+                    }
+                } else {
+                    throw new Error(result.error || 'เกิดข้อผิดพลาดในการบันทึก');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nข้อมูลจะถูกเก็บในเครื่องเท่านั้น');
+                
+                // Fallback to localStorage (but don't update stock in demo mode)
+                const localData = {
+                    orderId: orderId,
+                    dateTime: document.getElementById('currentDateTime').textContent,
+                    productName: document.getElementById('productName').value,
+                    products: products,
+                    notes: document.getElementById('productNotes').value || 'ไม่มีหมายเหตุ',
+                    paymentStatus: paymentStatus
+                };
+                
+                let records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+                records.push(localData);
+                localStorage.setItem('shopRecords', JSON.stringify(records));
+                
+                // Reset form
+                this.reset();
+                
+                // Refresh records display
+                displayRecords();
+            } finally {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+
+        // Display saved records
+        function displayRecords() {
+            const records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+            const recordsList = document.getElementById('recordsList');
+            
+            if (records.length === 0) {
+                recordsList.innerHTML = '<p class="text-gray-500 text-center py-8">ยังไม่มีข้อมูลที่บันทึก</p>';
+                return;
+            }
+
+            recordsList.innerHTML = records.map((record, index) => `
+                <div class="border border-teal-200 rounded-lg p-4 bg-gradient-to-r from-cyan-50 to-teal-50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-semibold text-lg text-teal-800">${record.productName}</h3>
+                            <div class="text-xs text-gray-500">ID: ${record.orderId || 'N/A'}</div>
+                        </div>
+                        <span class="text-sm text-teal-600">${record.dateTime}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong class="text-teal-700">🐠 สินค้า:</strong>
+                        <ul class="list-disc list-inside ml-4 text-gray-700">
+                            ${record.products.map(p => `<li>${p.name} - จำนวน ${p.quantity}${p.price ? ` - ฿${p.price.toLocaleString()} = ฿${(p.price * p.quantity).toLocaleString()}` : ''}</li>`).join('')}
+                        </ul>
+                        ${record.products.length > 0 && record.products[0].price ? `<div class="mt-2 text-right"><strong class="text-teal-800">รวมทั้งหมด: ฿${record.products.reduce((sum, p) => sum + (p.price * p.quantity), 0).toLocaleString()}</strong></div>` : ''}
+                    </div>
+                    <div class="mb-3 text-sm text-gray-700">
+                        <strong class="text-teal-700">📝 หมายเหตุ:</strong> ${record.notes}
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <strong class="text-teal-700">📋 สถานะ:</strong> บันทึกเรียบร้อยแล้ว
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Navigation functions
+        function showAddForm() {
+            document.getElementById('addFormSection').classList.remove('hidden');
+            document.getElementById('orderViewSection').classList.add('hidden');
+            document.getElementById('stockStatusSection').classList.add('hidden');
+            document.getElementById('recordsSection').classList.remove('hidden');
+            
+            // Update button states
+            document.getElementById('addFormBtn').className = activeBtnClass;
+            document.getElementById('orderViewBtn').className = defaultBtnClass;
+            document.getElementById('stockStatusBtn').className = defaultBtnClass;
+        }
+
+        function showOrderView() {
+            document.getElementById('addFormSection').classList.add('hidden');
+            document.getElementById('orderViewSection').classList.remove('hidden');
+            document.getElementById('stockStatusSection').classList.add('hidden');
+            document.getElementById('recordsSection').classList.add('hidden');
+            
+            // Update button states
+            document.getElementById('addFormBtn').className = defaultBtnClass;
+            document.getElementById('orderViewBtn').className = activeBtnClass;
+            document.getElementById('stockStatusBtn').className = defaultBtnClass;
+            
+            displayOrders();
+        }
+
+        function showStockStatus() {
+            document.getElementById('addFormSection').classList.add('hidden');
+            document.getElementById('orderViewSection').classList.add('hidden');
+            document.getElementById('recordsSection').classList.add('hidden');
+            document.getElementById('stockStatusSection').classList.remove('hidden');
+
+            // Update button states
+            document.getElementById('addFormBtn').className = defaultBtnClass;
+            document.getElementById('orderViewBtn').className = defaultBtnClass;
+            document.getElementById('stockStatusBtn').className = activeBtnClass;
+
+            loadStockStatus();
+        }
+
+        // Order management functions
+        function refreshOrders() {
+            displayOrders();
+        }
+
+        function displayOrders() {
+            const records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+            const ordersList = document.getElementById('ordersList');
+            const ordersTotalSummary = document.getElementById('ordersTotalSummary');
+            const ordersGrandTotal = document.getElementById('ordersGrandTotal');
+            const searchTerm = document.getElementById('searchOrder').value.toLowerCase();
+            
+            let filteredRecords = records;
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredRecords = filteredRecords.filter(record => 
+                    record.productName.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (filteredRecords.length === 0) {
+                ordersList.innerHTML = '<p class="text-gray-500 text-center py-8">ไม่พบออเดอร์ที่ตรงกับเงื่อนไข</p>';
+                ordersTotalSummary.classList.add('hidden');
+                return;
+            }
+            
+            // Calculate grand total
+            const grandTotal = filteredRecords.reduce((sum, record) => {
+                return sum + (record.products.reduce((productSum, p) => productSum + (p.price * p.quantity), 0));
+            }, 0);
+            
+            // Show total summary
+            ordersGrandTotal.textContent = `฿${grandTotal.toLocaleString()}`;
+            ordersTotalSummary.classList.remove('hidden');
+
+            ordersList.innerHTML = filteredRecords.map((record, index) => {
+                
+                return `
+                    <div class="border border-teal-200 rounded-lg p-4 bg-gradient-to-r from-cyan-50 to-teal-50">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-semibold text-lg text-teal-800">${record.productName}</h3>
+                                <div class="text-xs text-gray-500">ID: ${record.orderId || 'N/A'}</div>
+                            </div>
+                            <span class="text-sm text-teal-600">${record.dateTime}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong class="text-teal-700">🐠 สินค้า:</strong>
+                            <ul class="list-disc list-inside ml-4 text-gray-700">
+                                ${record.products.map(p => `<li>${p.name} - จำนวน ${p.quantity}${p.price ? ` - ฿${p.price.toLocaleString()} = ฿${(p.price * p.quantity).toLocaleString()}` : ''}</li>`).join('')}
+                            </ul>
+                            ${record.products.length > 0 && record.products[0].price ? `<div class="mt-2 text-right"><strong class="text-teal-800">รวมทั้งหมด: ฿${record.products.reduce((sum, p) => sum + (p.price * p.quantity), 0).toLocaleString()}</strong></div>` : ''}
+                        </div>
+                        <div class="mb-3 text-sm text-gray-700">
+                            <strong class="text-teal-700">📝 หมายเหตุ:</strong> ${record.notes}
+                        </div>
+                        <div class="mb-3 text-sm">
+                            <strong class="text-teal-700">💳 สถานะการจ่าย:</strong> 
+                            <span class="${record.paymentStatus === 'paid' ? 'text-green-600 font-semibold' : 'text-orange-600 font-semibold'}">
+                                ${record.paymentStatus === 'paid' ? '✅ จ่ายแล้ว' : '⏳ ยังไม่จ่าย'}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                <strong class="text-teal-700">📋 สถานะ:</strong> บันทึกเรียบร้อยแล้ว
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editOrder(${index})" 
+                                        class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors">
+                                    ✏️ แก้ไข
+                                </button>
+                                <button onclick="deleteOrder(${index})" 
+                                        class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                                    🗑️ ลบ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+
+
+        // Edit order function
+        function editOrder(index) {
+            const records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+            const record = records[index];
+            
+            if (!record) return;
+            
+            // Populate edit form
+            document.getElementById('editOrderIndex').value = index;
+            document.getElementById('editProductName').value = record.productName;
+            document.getElementById('editProductNotes').value = record.notes === 'ไม่มีหมายเหตุ' ? '' : record.notes;
+            
+            // Populate products
+            const editProductList = document.getElementById('editProductList');
+            editProductList.innerHTML = '';
+            
+            record.products.forEach((product, i) => {
+                addEditProductRow(product.name, product.quantity);
+            });
+            
+            // Show modal
+            document.getElementById('editOrderModal').classList.remove('hidden');
+        }
+        
+        function addEditProductRow(selectedProductName = '', quantity = 1) {
+            const editProductList = document.getElementById('editProductList');
+            const newItem = document.createElement('div');
+            newItem.className = 'edit-product-item flex items-center gap-2 p-2 bg-gray-50 rounded';
+            newItem.innerHTML = `
+                <select class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm">
+                    <option value="">เลือกสินค้า</option>
+                    <!-- Products will be populated by updateProductSelects() -->
+                </select>
+                <input type="number" value="${quantity}" min="1" 
+                       class="w-16 px-2 py-1 border border-gray-300 rounded text-sm">
+                <button type="button" onclick="removeEditProduct(this)" 
+                        class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                    ×
+                </button>
+            `;
+            editProductList.appendChild(newItem);
+            
+            // Populate the select and set the selected value
+            updateProductSelects();
+            if (selectedProductName) {
+                const select = newItem.querySelector('select');
+                const options = select.querySelectorAll('option');
+                options.forEach(option => {
+                    if (option.value) {
+                        const productData = JSON.parse(option.value);
+                        if (productData.name === selectedProductName) {
+                            option.selected = true;
+                        }
+                    }
+                });
+            }
+        }
+        
+        function addEditProduct() {
+            addEditProductRow();
+        }
+        
+        function removeEditProduct(button) {
+            const editProductItems = document.querySelectorAll('.edit-product-item');
+            if (editProductItems.length > 1) {
+                button.parentElement.remove();
+            } else {
+                alert('ต้องมีสินค้าอย่างน้อย 1 รายการ');
+            }
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editOrderModal').classList.add('hidden');
+        }
+        
+        // Edit form submission
+        document.getElementById('editOrderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '💾 กำลังบันทึก...';
+            submitButton.disabled = true;
+            
+            const index = parseInt(document.getElementById('editOrderIndex').value);
+            const records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+            
+            if (index >= 0 && index < records.length) {
+                const originalRecord = records[index];
+                
+                // Update record
+                records[index].productName = document.getElementById('editProductName').value;
+                records[index].notes = document.getElementById('editProductNotes').value || 'ไม่มีหมายเหตุ';
+                
+                // Update products
+                const products = [];
+                const editProductItems = document.querySelectorAll('.edit-product-item');
+                editProductItems.forEach(item => {
+                    const select = item.querySelector('select');
+                    const quantity = item.querySelector('input[type="number"]');
+                    if (select.value) {
+                        const productData = JSON.parse(select.value);
+                        products.push({
+                            id: productData.id,
+                            name: productData.name,
+                            price: productData.price,
+                            quantity: parseInt(quantity.value),
+                            total: productData.price * parseInt(quantity.value)
+                        });
+                    }
+                });
+                records[index].products = products;
+                
+                try {
+                    // Send update to Google Sheets
+                    const formData = new FormData();
+                    formData.append('action', 'updateOrder');
+                    formData.append('orderId', originalRecord.orderId);
+                    formData.append('productName', records[index].productName);
+                    formData.append('products', JSON.stringify(products));
+                    formData.append('notes', records[index].notes);
+                    
+                    const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ แก้ไขออเดอร์และอัพเดท Google Sheets เรียบร้อยแล้ว!');
+                    } else {
+                        throw new Error(result.error || 'เกิดข้อผิดพลาดในการอัพเดท');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('⚠️ แก้ไขออเดอร์เรียบร้อย แต่ไม่สามารถอัพเดท Google Sheets ได้: ' + error.message);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('shopRecords', JSON.stringify(records));
+                
+                closeEditModal();
+                displayRecords();
+                displayOrders();
+            }
+            
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
+        
+        // Delete order function
+        async function deleteOrder(index) {
+            if (confirm('คุณต้องการลบออเดอร์นี้หรือไม่?')) {
+                const records = JSON.parse(localStorage.getItem('shopRecords') || '[]');
+                const recordToDelete = records[index];
+                
+                try {
+                    // Send delete request to Google Apps Script
+                    const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=delete&rowIndex=${index + 2}&productName=${encodeURIComponent(recordToDelete.productName)}&dateTime=${encodeURIComponent(recordToDelete.dateTime)}`
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Remove from localStorage
+                        records.splice(index, 1);
+                        localStorage.setItem('shopRecords', JSON.stringify(records));
+                        
+                        alert('🗑️ ลบออเดอร์จาก Google Sheets เรียบร้อยแล้ว!');
+                    } else {
+                        throw new Error(result.error || 'เกิดข้อผิดพลาดในการลบ');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ เกิดข้อผิดพลาดในการลบจาก Google Sheets: ' + error.message + '\n\nจะลบจากเครื่องเท่านั้น');
+                    
+                    // Fallback to local delete
+                    records.splice(index, 1);
+                    localStorage.setItem('shopRecords', JSON.stringify(records));
+                }
+                
+                displayRecords();
+                displayOrders();
+            }
+        }
+
+        // Search event listener
+        document.getElementById('searchOrder').addEventListener('input', displayOrders);
+
+        // Load products from Google Sheets
+        let availableProducts = [];
+        
+        async function loadProductsFromSheet() {
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec?action=getStock');
+                const result = await response.json();
+                
+                if (result.success && result.products) {
+                    // Transform sheet data to product format with ID and stock
+                    availableProducts = result.products.map((product, index) => ({
+                        id: product.ID || `PROD-${index + 1}`,
+                        name: product["สินค้า"] || product.name,
+                        price: parseFloat(product["ราคา"] || product.price || 0),
+                        stock: parseInt(product["จำนวนคงเหลือ"] || product.stock || 0)
+                    }));
+                    updateProductSelects();
+                } else {
+                    console.error('Failed to load products:', result.error);
+                    // Use fallback products if Google Sheets fails
+                    availableProducts = [
+                        { id: 'PROD-1', name: '🏖️ ชุดว่ายน้ำ', price: 890, stock: 10 },
+                        { id: 'PROD-2', name: '🕶️ แว่นกันแดด', price: 450, stock: 15 },
+                        { id: 'PROD-3', name: '👒 หมวกชายหาด', price: 320, stock: 8 },
+                        { id: 'PROD-4', name: '🩴 รองเท้าแตะ', price: 280, stock: 20 },
+                        { id: 'PROD-5', name: '🏄‍♂️ อุปกรณ์กีฬาทางน้ำ', price: 1250, stock: 5 },
+                        { id: 'PROD-6', name: '🐚 ของที่ระลึกทะเล', price: 150, stock: 25 },
+                        { id: 'PROD-7', name: '🌊 อื่นๆ', price: 0, stock: 999 }
+                    ];
+                    updateProductSelects();
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                // Use fallback products
+                availableProducts = [
+                    { id: 'PROD-1', name: '🏖️ ชุดว่ายน้ำ', price: 890, stock: 10 },
+                    { id: 'PROD-2', name: '🕶️ แว่นกันแดด', price: 450, stock: 15 },
+                    { id: 'PROD-3', name: '👒 หมวกชายหาด', price: 320, stock: 8 },
+                    { id: 'PROD-4', name: '🩴 รองเท้าแตะ', price: 280, stock: 20 },
+                    { id: 'PROD-5', name: '🏄‍♂️ อุปกรณ์กีฬาทางน้ำ', price: 1250, stock: 5 },
+                    { id: 'PROD-6', name: '🐚 ของที่ระลึกทะเล', price: 150, stock: 25 },
+                    { id: 'PROD-7', name: '🌊 อื่นๆ', price: 0, stock: 999 }
+                ];
+                updateProductSelects();
+            }
+        }
+        
+        function updateProductSelects() {
+            const selects = document.querySelectorAll('#productList select, #editProductList select');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">เลือกสินค้า</option>';
+                
+                availableProducts.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(product);
+                    option.textContent = `${product.name}`;
+                    
+                    // Disable if out of stock
+                    if (product.stock <= 0) {
+                        option.disabled = true;
+                        option.style.color = '#999';
+                        option.textContent = `${product.name} (หมด)`;
+                    }
+                    
+                    if (currentValue && JSON.parse(currentValue || '{}').id === product.id) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                // Add event listener for live updates (only for main form selects)
+                if (select.closest('#productList')) {
+                    select.addEventListener('change', updateOrderSummary);
+                }
+            });
+        }
+
+        async function loadStockStatus() {
+            const stockList = document.getElementById('stockList');
+            stockList.innerHTML = '<p class="text-gray-500 text-center py-8">กำลังโหลดข้อมูล...</p>';
+
+            try {
+                const response = await fetch("https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec?action=getStock");
+                const result = await response.json();
+
+                if (result.success && result.products) {
+                    const html = result.products.map((product, index) => `
+                        <div class="border border-teal-200 rounded-lg p-4 bg-gradient-to-r from-cyan-50 to-teal-50">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-teal-800 text-lg">${product["สินค้า"]}</div>
+                                    <div class="text-xs text-gray-500 mb-1">ID: ${product.ID || `PROD-${index + 1}`}</div>
+                                    <div class="text-orange-600 font-bold text-lg">฿${product["ราคา"] ? parseInt(product["ราคา"]).toLocaleString() : '0'}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-teal-600 mb-1">คงเหลือ</div>
+                                    <div class="text-xl font-bold ${product["จำนวนคงเหลือ"] <= 5 ? 'text-red-600' : 'text-teal-700'}">${product["จำนวนคงเหลือ"]}</div>
+                                    ${product["จำนวนคงเหลือ"] <= 5 ? '<div class="text-xs text-red-500">⚠️ สต็อกต่ำ</div>' : ''}
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <button onclick="editStockItem('${product.ID || `PROD-${index + 1}`}', ${index})" 
+                                        class="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 transition-colors">
+                                    ✏️ แก้ไข
+                                </button>
+                                <button onclick="deleteStockItem('${product.ID || `PROD-${index + 1}`}', ${index})" 
+                                        class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                                    🗑️ ลบ
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    stockList.innerHTML = html;
+                } else {
+                    throw new Error(result.error || "ไม่สามารถโหลดข้อมูลสินค้า");
+                }
+            } catch (err) {
+                console.error("โหลดข้อมูลล้มเหลว:", err);
+                stockList.innerHTML = `<p class="text-red-500 text-center py-8">❌ เกิดข้อผิดพลาด: ${err.message}</p>`;
+            }
+        }
+
+        // Stock management functions
+        function showAddStockForm() {
+            document.getElementById('addStockForm').classList.remove('hidden');
+            document.getElementById('editStockForm').classList.add('hidden');
+        }
+        
+        function hideAddStockForm() {
+            document.getElementById('addStockForm').classList.add('hidden');
+            document.getElementById('stockForm').reset();
+        }
+        
+        function showEditStockForm() {
+            document.getElementById('editStockForm').classList.remove('hidden');
+            document.getElementById('addStockForm').classList.add('hidden');
+        }
+        
+        function hideEditStockForm() {
+            document.getElementById('editStockForm').classList.add('hidden');
+            document.getElementById('editStockFormElement').reset();
+        }
+        
+        // Add stock form submission
+        document.getElementById('stockForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '💾 กำลังบันทึก...';
+            submitButton.disabled = true;
+            
+            const productData = {
+                id: 'PROD-' + Date.now(),
+                name: document.getElementById('stockProductName').value,
+                price: parseFloat(document.getElementById('stockPrice').value),
+                stock: parseInt(document.getElementById('stockQuantity').value)
+            };
+            
+            try {
+                // Send to Google Sheets
+                const formData = new FormData();
+                formData.append('action', 'addStock');
+                formData.append('productData', JSON.stringify(productData));
+                
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ เพิ่มสินค้าเรียบร้อยแล้ว!');
+                    hideAddStockForm();
+                    loadStockStatus();
+                    loadProductsFromSheet(); // Refresh product list
+                } else {
+                    throw new Error(result.error || 'เกิดข้อผิดพลาดในการเพิ่มสินค้า');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message + ' (Demo Mode)');
+                hideAddStockForm();
+            } finally {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+        
+        // Edit stock form submission
+        document.getElementById('editStockFormElement').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '💾 กำลังบันทึก...';
+            submitButton.disabled = true;
+            
+            const productData = {
+                id: document.getElementById('editStockId').value,
+                name: document.getElementById('editStockProductName').value,
+                price: parseFloat(document.getElementById('editStockPrice').value),
+                stock: parseInt(document.getElementById('editStockQuantity').value)
+            };
+            
+            try {
+                // Send to Google Sheets
+                const formData = new FormData();
+                formData.append('action', 'updateStock');
+                formData.append('productData', JSON.stringify(productData));
+                
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ แก้ไขสินค้าเรียบร้อยแล้ว!');
+                    hideEditStockForm();
+                    loadStockStatus();
+                    loadProductsFromSheet(); // Refresh product list
+                } else {
+                    throw new Error(result.error || 'เกิดข้อผิดพลาดในการแก้ไขสินค้า');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message + ' (Demo Mode)');
+                hideEditStockForm();
+            } finally {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+        
+        async function editStockItem(productId, index) {
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec?action=getStock');
+                const result = await response.json();
+                
+                if (result.success && result.products[index]) {
+                    const product = result.products[index];
+                    
+                    // Populate edit form
+                    document.getElementById('editStockId').value = productId;
+                    document.getElementById('editStockProductName').value = product["สินค้า"];
+                    document.getElementById('editStockPrice').value = product["ราคา"];
+                    document.getElementById('editStockQuantity').value = product["จำนวนคงเหลือ"];
+                    
+                    showEditStockForm();
+                } else {
+                    alert('❌ ไม่สามารถโหลดข้อมูลสินค้าได้');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+        
+        async function deleteStockItem(productId, index) {
+            if (confirm('คุณต้องการลบสินค้านี้หรือไม่?')) {
+                try {
+                    const formData = new FormData();
+                    formData.append('action', 'deleteStock');
+                    formData.append('productId', productId);
+                    formData.append('rowIndex', index + 2); // +2 for header row
+                    
+                    const response = await fetch('https://script.google.com/macros/s/AKfycbxyqIcTPCvYchCroxmCuqTvjELti19C-m8m_fYkzOEnOQbFvZ2KjwwgWxbbhmP6kxeg/exec', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('🗑️ ลบสินค้าเรียบร้อยแล้ว!');
+                        loadStockStatus();
+                        loadProductsFromSheet(); // Refresh product list
+                    } else {
+                        throw new Error(result.error || 'เกิดข้อผิดพลาดในการลบสินค้า');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ เกิดข้อผิดพลาด: ' + error.message + ' (Demo Mode)');
+                }
+            }
+        }
+
+        // Initialize
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        loadProductsFromSheet();
+        displayRecords();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9667f85704e17997',t:'MTc1Mzc0MzM5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
